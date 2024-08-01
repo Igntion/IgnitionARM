@@ -1,0 +1,534 @@
+In Azure Portal:
+	1. In top search bar type in "Deploy a custom template" and select
+	2. Select "Build your own template in the editor"
+	3. Delete the JSON code there and replace with the code down below. Save
+	4. Specify resource group (an empty one)
+	5. Review and create
+
+*Static IPs, inbound rules, auto-shutdown configured*
+(Domain) VM1, VM2, VM3: Configured in subnet 1, same NSG, Windows Server 2022,
+(Client) VM4, VM5: Configured in subnet 2, same NSG, Windows 10 pro/Windows 11 pro
+
+Username: adminuser
+Password: P@ssw0rd1234 
+
+*Copy starting at brackets*:
+
+{
+  "$schema": "https://schema.management.azure.com/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2021-05-01",
+      "name": "vnet-ignition",
+      "location": "East US",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": ["10.0.0.0/16"]
+        },
+        "subnets": [
+          {
+            "name": "default",
+            "properties": {
+              "addressPrefix": "10.0.0.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]"
+              }
+            }
+          },
+          {
+            "name": "additional-subnet",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-additional')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2021-05-01",
+      "name": "nsg-ignition",
+      "location": "East US",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-ssh",
+            "properties": {
+              "priority": 1000,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "sourcePortRange": "*"
+            }
+          },
+          {
+            "name": "allow-rdp",
+            "properties": {
+              "priority": 300,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "sourcePortRange": "*"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2021-05-01",
+      "name": "nsg-additional",
+      "location": "East US",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-rdp",
+            "properties": {
+              "priority": 300,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "sourcePortRange": "*"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-05-01",
+      "name": "publicIP-vm-1",
+      "location": "East US",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-05-01",
+      "name": "publicIP-vm-2",
+      "location": "East US",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-05-01",
+      "name": "publicIP-vm-3",
+      "location": "East US",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-05-01",
+      "name": "publicIP-vm-4",
+      "location": "East US",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-05-01",
+      "name": "publicIP-vm-5",
+      "location": "East US",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2021-05-01",
+      "name": "nic-vm-1",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-ignition')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-1')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.0.4",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-1')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-ignition', 'default')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2021-05-01",
+      "name": "nic-vm-2",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-ignition')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-2')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.0.5",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-2')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-ignition', 'default')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2021-05-01",
+      "name": "nic-vm-3",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-ignition')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-3')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.0.6",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-3')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-ignition', 'default')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-ignition')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2021-05-01",
+      "name": "nic-vm-4",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-ignition')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-additional')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-4')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.1.4",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-4')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-ignition', 'additional-subnet')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-additional')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2021-05-01",
+      "name": "nic-vm-5",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-ignition')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-additional')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-5')]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.1.5",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'publicIP-vm-5')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-ignition', 'additional-subnet')]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-additional')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "name": "vm-1",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-1')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B1ms"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-1')]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "vm1",
+          "adminUsername": "adminuser",
+          "adminPassword": "P@ssw0rd1234"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "name": "vm-2",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-2')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B1ms"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-2')]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "vm2",
+          "adminUsername": "adminuser",
+          "adminPassword": "P@ssw0rd1234"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "name": "vm-3",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-3')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B1ms"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2022-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-3')]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "vm3",
+          "adminUsername": "adminuser",
+          "adminPassword": "P@ssw0rd1234"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "name": "vm-4",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-4')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B1ms"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsDesktop",
+            "offer": "Windows-10",
+            "sku": "19h1-pro-gensecond",
+            "version": "18362.1256.2012032308"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-4')]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "vm4",
+          "adminUsername": "adminuser",
+          "adminPassword": "P@ssw0rd1234"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "name": "vm-5",
+      "location": "East US",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-5')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B1ms"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsDesktop",
+            "offer": "windows-11",
+            "sku": "win11-21h2-pro",
+            "version": "22000.2538.231001"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'nic-vm-5')]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "vm5",
+          "adminUsername": "adminuser",
+          "adminPassword": "P@ssw0rd1234"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "vm1Id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines', 'vm-1')]"
+    },
+    "vm2Id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines', 'vm-2')]"
+    },
+    "vm3Id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines', 'vm-3')]"
+    },
+    "vm4Id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines', 'vm-4')]"
+    },
+    "vm5Id": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Compute/virtualMachines', 'vm-5')]"
+    }
+  }
+}
