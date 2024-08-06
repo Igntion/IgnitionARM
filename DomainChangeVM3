@@ -1,7 +1,7 @@
 # Define variables
 $domainName = "Core.Ignition"
 $domainUser = "AD2@Core.Ignition"
-$domainPassword = "P@ssw0rd"
+$domainPassword = "P@ssw0rd1234"
 $securePassword = ConvertTo-SecureString $domainPassword -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
 
