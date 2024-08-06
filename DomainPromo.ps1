@@ -1,5 +1,5 @@
 # Define variables
-$dsrmPassword = ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force
+$dsrmPassword = ConvertTo-SecureString "P@ssw0rd1234" -AsPlainText -Force
 
 # Install the Active Directory Domain Services role
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
