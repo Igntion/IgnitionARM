@@ -1,3 +1,7 @@
+# Define variables
+$domainName = "Core.Ignition"
+$adminPassword = ConvertTo-SecureString 'P@ssw0rd1234' -AsPlainText -Force
+
 # Wait for the system to come back online and ensure the AD services are up
 Start-Sleep -Seconds 120
 
@@ -7,10 +11,9 @@ Import-Module ActiveDirectory
 # Ensure the OU exists
 if (-not (Get-ADOrganizationalUnit -Filter {Name -eq 'Users'} -SearchBase 'DC=Core,DC=Ignition')) {
     New-ADOrganizationalUnit -Name 'Users' -Path 'DC=Core,DC=Ignition'
+} else {
+    Write-Output "OU 'Users' already exists."
 }
-
-# Define the admin password
-$adminPassword = ConvertTo-SecureString 'P@ssw0rd1234' -AsPlainText -Force
 
 # Create users in AD
 $users = @(
@@ -35,9 +38,17 @@ foreach ($user in $users) {
 }
 
 # Add AD1 and AD2 to Domain Admins group
-Add-ADGroupMember -Identity 'Domain Admins' -Members 'AD1', 'AD2'
+try {
+    Add-ADGroupMember -Identity 'Domain Admins' -Members 'AD1', 'AD2'
+} catch {
+    Write-Error "Failed to add users to Domain Admins group: $_"
+}
 
 Write-Output 'Active Directory setup completed and users added successfully.'
 
 # Remove the scheduled task
-Unregister-ScheduledTask -TaskName 'ProvisionUsers' -Confirm:$false
+try {
+    Unregister-ScheduledTask -TaskName 'ProvisionUsers' -Confirm:$false
+} catch {
+    Write-Error "Failed to remove scheduled task 'ProvisionUsers': $_"
+}
