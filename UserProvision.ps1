@@ -8,11 +8,11 @@ Start-Sleep -Seconds 120
 # Import the Active Directory module
 Import-Module ActiveDirectory
 
-# Ensure the OU exists
-if (-not (Get-ADOrganizationalUnit -Filter {Name -eq 'Users'} -SearchBase 'DC=Core,DC=Ignition')) {
-    New-ADOrganizationalUnit -Name 'Users' -Path 'DC=Core,DC=Ignition'
-} else {
-    Write-Output "OU 'Users' already exists."
+# Ensure the Users container exists
+$usersContainer = Get-ADOrganizationalUnit -Filter {Name -eq 'Users'} -SearchBase 'DC=Core,DC=Ignition'
+if (-not $usersContainer) {
+    Write-Error "The 'Users' container does not exist in the domain 'Core.Ignition'."
+    exit 1
 }
 
 # Create users in AD
@@ -48,7 +48,7 @@ Write-Output 'Active Directory setup completed and users added successfully.'
 
 # Remove the scheduled task
 try {
-    Unregister-ScheduledTask -TaskName 'ProvisionUsers' -Confirm:$false
+    Unregister-ScheduledTask -TaskName 'UserProvision' -Confirm:$false
 } catch {
-    Write-Error "Failed to remove scheduled task 'ProvisionUsers': $_"
+    Write-Error "Failed to remove scheduled task 'UserProvision': $_"
 }
