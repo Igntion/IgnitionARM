@@ -8,14 +8,7 @@ Start-Sleep -Seconds 120
 # Import the Active Directory module
 Import-Module ActiveDirectory
 
-# Ensure the Users container exists
-$usersContainer = Get-ADOrganizationalUnit -Filter {Name -eq 'Users'} -SearchBase 'DC=Core,DC=Ignition'
-if (-not $usersContainer) {
-    Write-Error "The 'Users' container does not exist in the domain 'Core.Ignition'."
-    exit 1
-}
-
-# Create users in AD
+# Create users in the built-in Users container
 $users = @(
     @{FullName='AD1'; LogonName='AD1'; Password=$adminPassword},
     @{FullName='AD2'; LogonName='AD2'; Password=$adminPassword},
@@ -28,7 +21,7 @@ foreach ($user in $users) {
         New-ADUser -Name $user.FullName `
             -SamAccountName $user.LogonName `
             -UserPrincipalName "$($user.LogonName)@$domainName" `
-            -Path 'OU=Users,DC=Core,DC=Ignition' `
+            -Path 'CN=Users,DC=Core,DC=Ignition' `
             -AccountPassword $user.Password `
             -PasswordNeverExpires $true `
             -PassThru | Enable-ADAccount
@@ -48,7 +41,7 @@ Write-Output 'Active Directory setup completed and users added successfully.'
 
 # Remove the scheduled task
 try {
-    Unregister-ScheduledTask -TaskName 'UserProvision' -Confirm:$false
+    Unregister-ScheduledTask -TaskName 'ProvisionUsers' -Confirm:$false
 } catch {
-    Write-Error "Failed to remove scheduled task 'UserProvision': $_"
+    Write-Error "Failed to remove scheduled task 'ProvisionUsers': $_"
 }
