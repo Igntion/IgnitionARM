@@ -3,7 +3,7 @@ $domainName = "Core.Ignition"
 $domainUser = "AD2@Core.Ignition"
 $domainPassword = "P@ssw0rd"
 $securePassword = ConvertTo-SecureString $domainPassword -AsPlainText -Force
-$credential = New-Object System.Management.Automation.PSCredential ("$domainName\$domainUser", $securePassword)
+$credential = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
 
 # Join the domain
 Add-Computer -DomainName $domainName -Credential $credential -Force -Restart
