@@ -1,0 +1,76 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  adminUsername: 'adminuser'
+  adminPassword: 'P@ssw0rd1234'
+  vm1: '52.224.121.4'
+  vm2: '52.190.19.111'
+  vm3: '13.82.100.112'
+  vm1Scripts: |
+    https://raw.githubusercontent.com/Igntion/IgnitionARM/main/DCprovision.ps1
+    https://raw.githubusercontent.com/Igntion/IgnitionARM/main/UserProvision.ps1
+  vm2Script: 'https://raw.githubusercontent.com/Igntion/IgnitionARM/main/DomainChangeVM2.ps1'
+  vm3Script: 'https://raw.githubusercontent.com/Igntion/IgnitionARM/main/v2DomainChangeVM3.ps1'
+  commonScript: 'https://raw.githubusercontent.com/Igntion/IgnitionARM/main/DomainPromo.ps1'
+
+stages:
+- stage: Deploy
+  jobs:
+  - job: ProvisionVMs
+    steps:
+    - checkout: self
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'Ignition>'
+        scriptType: 'ps'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          $credVM1 = New-Object System.Management.Automation.PSCredential ("$(adminUsername)", (ConvertTo-SecureString "$(adminPassword)" -AsPlainText -Force))
+          $credVM2 = New-Object System.Management.Automation.PSCredential ("$(adminUsername)", (ConvertTo-SecureString "$(adminPassword)" -AsPlainText -Force))
+          $credVM3 = New-Object System.Management.Automation.PSCredential ("$(adminUsername)", (ConvertTo-SecureString "$(adminPassword)" -AsPlainText -Force))
+
+          function Execute-RemoteScript {
+              param (
+                  [string]$vm,
+                  [string]$url,
+                  [int]$waitTime = 0,
+                  [pscredential]$cred
+              )
+              Write-Host "Executing script from $url on $vm"
+              Invoke-Command -ComputerName $vm -Credential $cred -ScriptBlock {
+                  param ($url)
+                  Invoke-WebRequest -Uri $url -OutFile "C:\Temp\script.ps1"
+                  . "C:\Temp\script.ps1"
+              } -ArgumentList $url
+              if ($waitTime -gt 0) {
+                  Write-Host "Waiting for $waitTime seconds..."
+                  Start-Sleep -Seconds $waitTime
+              }
+          }
+
+          Write-Host "Configuring VM1..."
+          Invoke-Command -ComputerName $(vm1) -Credential $credVM1 -ScriptBlock {
+              Set-NetFirewallProfile -Profile Domain,Private -Enabled False
+          }
+          $vm1Scripts = "$(vm1Scripts)" -split "`n"
+          Execute-RemoteScript -vm $(vm1) -url $vm1Scripts[0] -cred $credVM1
+          Write-Host "Waiting 1 minute for VM1 to restart..."
+          Start-Sleep -Seconds 60
+          Write-Host "Waiting 20 seconds after VM1 restart..."
+          Start-Sleep -Seconds 20
+          Execute-RemoteScript -vm $(vm1) -url $vm1Scripts[1] -cred $credVM1
+
+          Write-Host "Configuring VM2 and VM3..."
+          Execute-RemoteScript -vm $(vm2) -url $(vm2Script) -cred $credVM2
+          Execute-RemoteScript -vm $(vm3) -url $(vm3Script) -cred $credVM3
+          Write-Host "Waiting 1 minute for VM2 and VM3 to restart..."
+          Start-Sleep -Seconds 60
+          Execute-RemoteScript -vm $(vm2) -url $(commonScript) -cred $credVM2
+          Execute-RemoteScript -vm $(vm3) -url $(commonScript) -cred $credVM3
+
+          Write-Host "Configuration complete!"
