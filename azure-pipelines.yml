@@ -26,7 +26,7 @@ stages:
 
     - task: AzureCLI@2
       inputs:
-        azureSubscription: 'Ignition>'
+        azureSubscription: 'Igntion>'
         scriptType: 'ps'
         scriptLocation: 'inlineScript'
         inlineScript: |
