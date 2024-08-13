@@ -29,12 +29,6 @@ Install-ADDSForest `
   -SafeModeAdministratorPassword $dsrmPassword `
   -Force:$true
 
-# Create a scheduled task to run the post-restart script after restart
-$action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument "-File $postRestartScriptPath"
-$trigger = New-ScheduledTaskTrigger -AtStartup
-$principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-$task = New-ScheduledTask -Action $action -Trigger $trigger -Principal $principal
-Register-ScheduledTask -TaskName 'ProvisionUsers' -InputObject $task
 
 # Restart the server
 Restart-Computer -Force
