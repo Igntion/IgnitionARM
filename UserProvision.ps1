@@ -2,8 +2,6 @@
 $domainName = "Core.Ignition"
 $adminPassword = ConvertTo-SecureString 'P@ssw0rd1234' -AsPlainText -Force
 
-# Wait for the system to come back online and ensure the AD services are up
-Start-Sleep -Seconds 120
 
 # Import the Active Directory module
 Import-Module ActiveDirectory
